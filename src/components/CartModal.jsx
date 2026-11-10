@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function CartModal({
   isOpen,
@@ -17,11 +17,18 @@ export default function CartModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="cart-title">
       <div className="bg-surface w-full max-w-lg rounded-t-xl sm:rounded-xl border border-borderLine shadow-lift max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
+        {/* Header with Back to Store & Close */}
         <div className="px-5 py-4 border-b border-borderLine flex items-center justify-between bg-background">
-          <div>
-            <h2 id="cart-title" className="text-lg font-bold text-textMain">Your Pickup Bag</h2>
-            <p className="text-xs text-textMuted">{items.length} {items.length === 1 ? 'item' : 'items'} ready for counter pack</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-borderLine bg-surface hover:bg-slate-100 text-xs font-semibold text-textMain min-h-[36px]"
+              aria-label="Back to store"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-brand" aria-hidden="true" />
+              <span>Back to Store</span>
+            </button>
           </div>
           <button
             type="button"
@@ -37,11 +44,11 @@ export default function CartModal({
         <div className="p-5 overflow-y-auto space-y-3 flex-1">
           {items.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-textMuted text-sm">Your bag is empty.</p>
+              <p className="text-textMuted text-sm">Your pickup bag is empty.</p>
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-3 px-4 py-2 text-xs font-semibold text-brand border border-brand rounded-lg min-h-[44px]"
+                className="mt-3 px-4 py-2 text-xs font-semibold text-brand border border-brand rounded-lg hover:bg-brand-light min-h-[44px]"
               >
                 Browse Items
               </button>
@@ -126,19 +133,28 @@ export default function CartModal({
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="p-4 border-t border-borderLine bg-background flex items-center justify-between gap-4">
+          <div className="p-4 border-t border-borderLine bg-background flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div>
               <span className="text-xs text-textMuted block">To Pay at Pickup</span>
               <span className="text-xl font-bold text-textMain">₹{subtotal}</span>
             </div>
-            <button
-              type="button"
-              onClick={onProceedToCheckout}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand hover:bg-brand-hover text-surface font-semibold text-sm shadow-card transition-colors min-h-[44px]"
-            >
-              <span>Next: Your Details</span>
-              <ArrowRight className="w-4 h-4" aria-hidden="true" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-lg border border-borderLine bg-surface hover:bg-slate-50 text-textMain font-semibold text-xs sm:text-sm min-h-[44px]"
+              >
+                Continue Shopping
+              </button>
+              <button
+                type="button"
+                onClick={onProceedToCheckout}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-brand hover:bg-brand-hover text-surface font-semibold text-xs sm:text-sm shadow-card transition-colors min-h-[44px]"
+              >
+                <span>Enter Details</span>
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         )}
       </div>
