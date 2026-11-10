@@ -13,34 +13,34 @@ import CheckoutModal from './components/CheckoutModal';
 import OtpTicket from './components/OtpTicket';
 import HowItWorks from './components/HowItWorks';
 import Footer from './components/Footer';
+import { KeyRound, ArrowRight, Edit3 } from 'lucide-react';
 
 const CART_STORAGE_KEY = 'brothers_superstore_cart_v1';
 const ORDER_STORAGE_KEY = 'brothers_superstore_order_v1';
 
 export default function App() {
-  // Cart state persisted to localStorage
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
-      console.warn('Failed to read cart from localStorage', e);
       return [];
     }
   });
 
-  // Last order state persisted to localStorage
   const [activeOrder, setActiveOrder] = useState(() => {
     try {
       const saved = localStorage.getItem(ORDER_STORAGE_KEY);
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
-      console.warn('Failed to read active order from localStorage', e);
       return null;
     }
   });
 
-  const [activeShop, setActiveShop] = useState('ALL'); // 'ALL' | 'A' | 'B'
+  // 'catalog' | 'ticket'
+  const [currentView, setCurrentView] = useState(() => (activeOrder ? 'ticket' : 'catalog'));
+
+  const [activeShop, setActiveShop] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash on Pickup');
@@ -48,16 +48,14 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
-  // Sync cart to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     } catch (e) {
-      console.warn('Failed to save cart to localStorage', e);
+      console.warn(e);
     }
   }, [cart]);
 
-  // Sync active order to localStorage
   useEffect(() => {
     try {
       if (activeOrder) {
@@ -66,11 +64,10 @@ export default function App() {
         localStorage.removeItem(ORDER_STORAGE_KEY);
       }
     } catch (e) {
-      console.warn('Failed to save order to localStorage', e);
+      console.warn(e);
     }
   }, [activeOrder]);
 
-  // Cart operations
   const handleAddToCart = (product) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
@@ -107,7 +104,6 @@ export default function App() {
     [cart]
   );
 
-  // Filter Categories dynamically based on selected shop
   const categories = useMemo(() => {
     const pool = activeShop === 'ALL'
       ? productsData
@@ -116,14 +112,12 @@ export default function App() {
     return ['All', ...unique];
   }, [activeShop]);
 
-  // Reset category if not available in current shop
   useEffect(() => {
     if (selectedCategory !== 'All' && !categories.includes(selectedCategory)) {
       setSelectedCategory('All');
     }
   }, [activeShop, categories, selectedCategory]);
 
-  // Filtered Products
   const filteredProducts = useMemo(() => {
     return productsData.filter((prod) => {
       const matchesShop = activeShop === 'ALL' || prod.shop === activeShop;
@@ -133,7 +127,6 @@ export default function App() {
     });
   }, [activeShop, selectedCategory, searchQuery]);
 
-  // Checkout handling & OTP creation
   const handleProceedToCheckout = () => {
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
@@ -156,42 +149,83 @@ export default function App() {
     };
 
     setActiveOrder(newOrder);
-    setCart([]); // Clear cart after order is confirmed
+    setCart([]);
     setIsCheckoutOpen(false);
-
+    setCurrentView('ticket');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStartNewOrder = () => {
+  // Edit Order: restores the items back into cart
+  const handleEditOrder = () => {
+    if (activeOrder && activeOrder.items) {
+      setCart(activeOrder.items);
+      setPaymentMethod(activeOrder.paymentMethod || 'Cash on Pickup');
+    }
+    setCurrentView('catalog');
+    setIsCartOpen(true);
+  };
+
+  const handleCancelOrder = () => {
     setActiveOrder(null);
-    setCart([]);
-  };
-
-  const scrollToCatalog = () => {
-    document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const scrollToHowItWorks = () => {
-    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+    setCurrentView('catalog');
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-textMain selection:bg-brand selection:text-white">
       <AnnouncementBar />
       <Header totalItems={totalItems} onOpenCart={() => setIsCartOpen(true)} />
+
+      {/* Active Order Banner (visible when browsing catalog with an existing order) */}
+      {activeOrder && currentView === 'catalog' && (
+        <div className="bg-brand-light border-b border-emerald-200 px-4 py-2.5">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs sm:text-sm">
+            <div className="flex items-center gap-2 text-brand font-medium">
+              <KeyRound className="w-4 h-4 shrink-0" />
+              <span>
+                Active Pickup Order: <strong>OTP {activeOrder.otp}</strong> (₹{activeOrder.total})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleEditOrder}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-emerald-300 bg-surface text-brand font-semibold text-xs hover:bg-emerald-50 min-h-[36px]"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Edit Order</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('ticket')}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-brand text-surface font-semibold text-xs hover:bg-brand-hover min-h-[36px]"
+              >
+                <span>View Full Ticket</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <StoreSwitcher activeShop={activeShop} onSelectShop={setActiveShop} />
 
       <main className="flex-1 pb-16">
-        {/* If an active order ticket exists, prioritize showing it */}
-        {activeOrder ? (
-          <div className="py-6">
-            <OtpTicket order={activeOrder} onStartNewOrder={handleStartNewOrder} />
+        {currentView === 'ticket' && activeOrder ? (
+          <div className="py-4">
+            <OtpTicket
+              order={activeOrder}
+              onBackToCatalog={() => setCurrentView('catalog')}
+              onEditOrder={handleEditOrder}
+              onCancelOrder={handleCancelOrder}
+            />
           </div>
         ) : (
           <>
-            <Hero onBrowseClick={scrollToCatalog} onHowItWorksClick={scrollToHowItWorks} />
+            <Hero
+              onBrowseClick={() => document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' })}
+              onHowItWorksClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            />
 
-            {/* Catalog Section */}
             <section id="catalog-section" className="max-w-6xl mx-auto px-4 py-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                 <div>
@@ -215,13 +249,13 @@ export default function App() {
               {filteredProducts.length === 0 ? (
                 <div className="text-center py-12 bg-surface rounded-lg border border-borderLine p-8">
                   <p className="text-base font-semibold text-textMain">No products found</p>
-                  <p className="text-sm text-textMuted mt-1">Try searching for a different item or switch category.</p>
+                  <p className="text-sm text-textMuted mt-1">Try searching for a different item.</p>
                   <button
                     type="button"
                     onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setActiveShop('ALL'); }}
                     className="mt-4 px-4 py-2 bg-surface text-brand border border-brand rounded-lg text-sm font-semibold hover:bg-brand hover:text-surface transition-colors min-h-[44px]"
                   >
-                    Reset All Filters
+                    Reset Filters
                   </button>
                 </div>
               ) : (
@@ -249,16 +283,14 @@ export default function App() {
 
       <Footer />
 
-      {/* Floating Bottom Cart Bar for Mobile */}
-      {!activeOrder && (
-        <CartBar
-          totalItems={totalItems}
-          subtotal={subtotal}
-          onOpenCart={() => setIsCartOpen(true)}
-        />
-      )}
+      {/* Floating Bottom Cart Bar */}
+      <CartBar
+        totalItems={totalItems}
+        subtotal={subtotal}
+        onOpenCart={() => setIsCartOpen(true)}
+      />
 
-      {/* Cart Modal / Sheet */}
+      {/* Cart Modal */}
       <CartModal
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
